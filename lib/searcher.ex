@@ -28,6 +28,7 @@ defmodule Searcher do
   defp normalize_wiki(<<"/", rest::binary>> = _link), do: "#{@wiki_base}/#{rest}"
 
   defp get!(url) do
+    url = URI.encode(url)
     url = ~c"#{url}"
     headers = [{~c"accept", ~c"application/json"}]
 
