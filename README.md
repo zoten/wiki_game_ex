@@ -1,6 +1,16 @@
 # WikiGame
 
-**TODO: Add description**
+## Build
+
+``` bash
+mix escript.build
+```
+
+## Usage
+
+```
+./wiki_game [-s start_page] [-t target_page] [-w num_workers]
+```
 
 ## Installation
 

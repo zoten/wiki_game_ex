@@ -5,21 +5,22 @@ defmodule Coordinator do
 
   require Logger
 
-  @target_page "/wiki/Adolf_Hitler"
-
   defstruct start_at: nil, num_workers: 0
 
   def start_link(opts) do
     start_page = Keyword.fetch!(opts, :start_page)
     num_workers = Keyword.fetch!(opts, :num_workers)
+    target_page = Keyword.fetch!(opts, :target_page)
 
-    GenServer.start_link(Coordinator, %{start_page: start_page, num_workers: num_workers},
+    GenServer.start_link(
+      Coordinator,
+      %{start_page: start_page, num_workers: num_workers, target_page: target_page},
       name: Coordinator
     )
   end
 
   @impl GenServer
-  def init(%{start_page: start_page, num_workers: num_workers}) do
+  def init(%{start_page: start_page, num_workers: num_workers, target_page: target_page}) do
     Logger.info("Starting coordinator")
     Cache.init()
     Registry.start_link(keys: :unique, name: Registry)
@@ -31,7 +32,7 @@ defmodule Coordinator do
       Explorer.start_link(
         name: Explorer.genserver_name(n),
         return_to: pid,
-        target_page: @target_page,
+        target_page: target_page,
         num_workers: num_workers
       )
     end)
@@ -49,24 +50,35 @@ defmodule Coordinator do
         _from,
         %Coordinator{start_at: start_at, num_workers: num_workers} = state
       ) do
-    summarize(page, steps)
-
     now = DateTime.utc_now()
     diff = now |> DateTime.diff(start_at, :second)
+
+    graceful_shutdown_workers(num_workers)
+
+    summarize(page, steps)
     Logger.info("Took: #{diff}s")
 
-    graceful_shutdown(num_workers)
+    graceful_shutdown()
 
     {:stop, :normal, state}
   end
 
-  defp graceful_shutdown(num_workers) do
+  defp graceful_shutdown_workers(num_workers) do
     0..num_workers
     |> Enum.each(fn n ->
       n
       |> Explorer.genserver_name()
       |> Explorer.stop()
     end)
+
+    :timer.sleep(500)
+  end
+
+  defp graceful_shutdown do
+    :ssl.stop()
+    :inets.stop()
+
+    System.stop(0)
   end
 
   defp summarize(page, steps) do

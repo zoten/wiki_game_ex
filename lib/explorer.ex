@@ -69,7 +69,7 @@ defmodule Explorer do
 
   def handle_cast(:stop, %Explorer{name: name} = state) do
     Logger.debug("[#{name}] Gracefully stopping")
-    {:stop, state}
+    {:stop, :normal, state}
   end
 
   @impl GenServer

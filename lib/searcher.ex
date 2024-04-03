@@ -2,18 +2,16 @@ defmodule Searcher do
   @wiki_base "https://en.wikipedia.org"
 
   def search(page) do
-    # get the page
     pages =
       page
       |> normalize_wiki()
-      |> Req.get!()
+      |> get!()
+      # |> Req.get!()
       |> Map.fetch!(:body)
       |> Floki.parse_document!()
       |> Floki.find("a")
       |> Floki.attribute("href")
       |> Enum.filter(&is_wiki_link?(&1))
-
-    # get page links
 
     {:ok, pages}
   end
@@ -28,4 +26,22 @@ defmodule Searcher do
 
   defp normalize_wiki(<<"https://en.wikipedia.org", _rest::binary>> = link), do: link
   defp normalize_wiki(<<"/", rest::binary>> = _link), do: "#{@wiki_base}/#{rest}"
+
+  defp get!(url) do
+    url = ~c"#{url}"
+    headers = [{~c"accept", ~c"application/json"}]
+
+    http_request_opts = [
+      ssl: [
+        verify: :verify_peer,
+        cacerts: :public_key.cacerts_get(),
+        customize_hostname_check: [
+          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+        ]
+      ]
+    ]
+
+    {:ok, {status, headers, body}} = :httpc.request(:get, {url, headers}, http_request_opts, [])
+    %{status: status, headers: headers, body: List.to_string(body)}
+  end
 end
