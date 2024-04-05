@@ -1,10 +1,12 @@
 defmodule Searcher do
-  @wiki_base "https://en.wikipedia.org"
+  @base_url "https://en.wikipedia.org"
 
-  def search(page) do
+  def search(page, opts \\ []) do
+    base_url = Keyword.get(opts, :base_url, @base_url)
+
     pages =
       page
-      |> normalize_wiki()
+      |> normalize_wiki(base_url)
       |> get!()
       # |> Req.get!()
       |> Map.fetch!(:body)
@@ -24,8 +26,8 @@ defmodule Searcher do
 
   defp is_wiki_link?(_link), do: false
 
-  defp normalize_wiki(<<"https://en.wikipedia.org", _rest::binary>> = link), do: link
-  defp normalize_wiki(<<"/", rest::binary>> = _link), do: "#{@wiki_base}/#{rest}"
+  defp normalize_wiki(<<"/", rest::binary>> = _link, base_url), do: "#{base_url}/#{rest}"
+  defp normalize_wiki(<<"https", _rest>> = link, _base_url), do: link
 
   defp get!(url) do
     url = URI.encode(url)

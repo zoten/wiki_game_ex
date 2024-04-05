@@ -7,7 +7,13 @@ defmodule Explorer do
 
   @cooldown 100
 
-  defstruct name: nil, queue: [], timer: nil, return_to: nil, target_page: nil, num_workers: 0
+  defstruct name: nil,
+            queue: [],
+            timer: nil,
+            return_to: nil,
+            target_page: nil,
+            num_workers: 0,
+            base_url: nil
 
   # Public interface
   def via(name), do: {:via, Registry, {Registry, name}}
@@ -32,10 +38,17 @@ defmodule Explorer do
     return_to = Keyword.fetch!(opts, :return_to)
     target_page = Keyword.fetch!(opts, :target_page)
     num_workers = Keyword.fetch!(opts, :num_workers)
+    base_url = Keyword.fetch!(opts, :base_url)
 
     GenServer.start_link(
       Explorer,
-      %{name: name, return_to: return_to, target_page: target_page, num_workers: num_workers},
+      %{
+        name: name,
+        return_to: return_to,
+        target_page: target_page,
+        num_workers: num_workers,
+        base_url: base_url
+      },
       name: via(name)
     )
   end
@@ -43,7 +56,13 @@ defmodule Explorer do
   # GenServer impl
 
   @impl GenServer
-  def init(%{name: name, return_to: return_to, target_page: target_page, num_workers: num_workers}) do
+  def init(%{
+        name: name,
+        return_to: return_to,
+        target_page: target_page,
+        num_workers: num_workers,
+        base_url: base_url
+      }) do
     Logger.info("Starting coordinator [#{name}] searching for [#{target_page}]")
 
     {:ok,
@@ -51,7 +70,8 @@ defmodule Explorer do
        name: name,
        return_to: return_to,
        target_page: target_page,
-       num_workers: num_workers
+       num_workers: num_workers,
+       base_url: base_url
      }}
   end
 
@@ -94,6 +114,7 @@ defmodule Explorer do
          %Explorer{
            name: name,
            target_page: target_page,
+           base_url: base_url,
            return_to: return_to,
            num_workers: num_workers,
            queue: [%Link{link: current_link, steps: steps} | t] = _queue
@@ -106,7 +127,7 @@ defmodule Explorer do
 
     {:ok, links} =
       current_link
-      |> Searcher.search()
+      |> Searcher.search(base_url: base_url)
 
     wiki_links =
       Enum.filter(links, fn link ->
@@ -130,6 +151,15 @@ defmodule Explorer do
 
     state = start_timer(state)
     %Explorer{state | queue: t}
+  end
+
+  defp do_search(
+         %Explorer{
+           queue: [] = _queue
+         } = state
+       ) do
+    state = stop_timer(state)
+    state
   end
 
   defp start_timer(%Explorer{timer: nil} = state) do

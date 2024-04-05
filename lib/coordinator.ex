@@ -11,16 +11,27 @@ defmodule Coordinator do
     start_page = Keyword.fetch!(opts, :start_page)
     num_workers = Keyword.fetch!(opts, :num_workers)
     target_page = Keyword.fetch!(opts, :target_page)
+    base_url = Keyword.fetch!(opts, :base_url)
 
     GenServer.start_link(
       Coordinator,
-      %{start_page: start_page, num_workers: num_workers, target_page: target_page},
+      %{
+        start_page: start_page,
+        num_workers: num_workers,
+        target_page: target_page,
+        base_url: base_url
+      },
       name: Coordinator
     )
   end
 
   @impl GenServer
-  def init(%{start_page: start_page, num_workers: num_workers, target_page: target_page}) do
+  def init(%{
+        start_page: start_page,
+        num_workers: num_workers,
+        target_page: target_page,
+        base_url: base_url
+      }) do
     Logger.info("Starting coordinator")
     Cache.init()
     Registry.start_link(keys: :unique, name: Registry)
@@ -33,7 +44,8 @@ defmodule Coordinator do
         name: Explorer.genserver_name(n),
         return_to: pid,
         target_page: target_page,
-        num_workers: num_workers
+        num_workers: num_workers,
+        base_url: base_url
       )
     end)
 

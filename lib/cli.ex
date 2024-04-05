@@ -3,6 +3,7 @@ defmodule Cli do
 
   @default_start_page "/wiki/Pokémon"
   @default_target_page "/wiki/Adolf_Hitler"
+  @default_base_url "https://en.wikipedia.org"
   @default_workers 5
 
   def main(args) do
@@ -30,6 +31,7 @@ defmodule Cli do
      * --start-page    -s    Starting page. Defaults to "#{@default_start_page}" (you can omit the /wiki/ prefix)
      * --target-page   -t    Ending page. Defaults to"#{@default_target_page}" (you can omit the /wiki/ prefix)
      * --num-workers   -w    Number of parallel workers. Defaults to "#{@default_workers}"
+     * --base-url      -b    Default wiki base url. Defaults to "#{@default_base_url}"
      * --help          -h    Come on.
 
      Look, this is a silly game so I'm doing the bare minimum validation here. Please make sure pages exist or things will
@@ -49,6 +51,7 @@ defmodule Cli do
       start_page: @default_start_page,
       target_page: @default_target_page,
       num_workers: @default_workers,
+      base_url: @default_base_url,
       help: false
     }
     |> Map.merge(opts)
@@ -60,6 +63,7 @@ defmodule Cli do
            strict: [
              start_page: :string,
              target_page: :string,
+             base_url: :string,
              num_workers: :integer,
              help: :boolean
            ],
@@ -68,7 +72,8 @@ defmodule Cli do
              h: :help,
              t: :target_page,
              s: :start_page,
-             w: :num_workers
+             w: :num_workers,
+             b: :base_url
            ]
          ) do
       {valid_opts, [], []} ->
